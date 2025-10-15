@@ -2,6 +2,22 @@ const express = require('express');
 const User = require('../models/User');
 const router = express.Router();
 
+const PASSWORD_REGEX = /^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_\-+=\[\]{};':"\|,.<>\/?]).{8,}$/;
+
+
+router.post('/register', async (req, res) => {
+  const { password } = req.body;
+
+  if (!PASSWORD_REGEX.test(password)) {
+    return res.status(400).json({
+      message: 'Password must be at least 8 characters, include 1 uppercase letter, 1 number, and 1 special character.'
+    });
+  }
+
+});
+
+
+
 // Register
 router.post('/register', async (req, res) => {
   try {
