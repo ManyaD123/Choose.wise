@@ -1,5 +1,6 @@
 const express = require('express');
 const User = require('../models/User');
+const emailService = require('../services/emailService');
 const router = express.Router();
 
 // Test endpoint
@@ -18,6 +19,10 @@ router.post('/register', async (req, res) => {
     }
 
     const result = await User.create({ name, email, password });
+    
+    // Send welcome email
+    await emailService.sendWelcomeEmail(email, name);
+    
     res.json({ 
       success: true, 
       user: { 
