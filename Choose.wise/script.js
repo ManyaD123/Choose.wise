@@ -509,7 +509,52 @@ function initLoginModal() {
     
     // Signup button - show signup form
     signupBtn.addEventListener('click', () => {
-        showSignupForm();
+        const signupModal = document.getElementById('signupModal');
+        closeModal();
+        signupModal.style.display = 'flex';
+        setTimeout(() => signupModal.classList.add('show'), 10);
+        
+        // Handle signup form
+        const signupForm = document.getElementById('signupForm');
+        signupForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const name = formData.get('name');
+            const email = formData.get('email');
+            const password = formData.get('password');
+            
+            try {
+                const response = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    alert(`Welcome to ChooseWise, ${data.user.name}! Check your email for welcome message.`);
+                    signupModal.style.display = 'none';
+                    updateUIForLoggedInUser(data.user);
+                } else {
+                    alert(data.error || 'Registration failed');
+                }
+            } catch (error) {
+                alert('Cannot connect to server. Make sure the backend is running.');
+            }
+        });
+        
+        // Back to login
+        document.getElementById('backToLoginBtn').addEventListener('click', () => {
+            signupModal.style.display = 'none';
+            loginModal.style.display = 'flex';
+        });
+        
+        // Close signup modal
+        document.getElementById('signupClose').addEventListener('click', () => {
+            signupModal.style.display = 'none';
+        });
     });
 }
 
