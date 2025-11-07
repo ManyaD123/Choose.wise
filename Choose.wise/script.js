@@ -474,36 +474,23 @@ function initLoginModal() {
     modalOverlay.addEventListener('click', closeModal);
     
     // Form submission for login
-    loginForm.addEventListener('submit', async (e) => {
+    loginForm.addEventListener('submit', (e) => {
         e.preventDefault();
         const formData = new FormData(e.target);
         const email = formData.get('email') || e.target.querySelector('input[type="email"]').value;
         const password = formData.get('password') || e.target.querySelector('input[type="password"]').value;
         
-        try {
-            const response = await fetch('/api/auth/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password })
-            });
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                localStorage.setItem('user', JSON.stringify(data.user));
-                alert(`Welcome back, ${data.user.name}!`);
-                closeModal();
-                updateUIForLoggedInUser(data.user);
-            } else {
-                alert(data.error || 'Login failed');
-            }
-        } catch (error) {
-            console.error('Login error:', error);
-            if (error.message.includes('fetch')) {
-                alert('Cannot connect to server. Make sure the backend is running on port 5000.');
-            } else {
-                alert('Login failed: ' + error.message);
-            }
+        // Get users from localStorage
+        const users = JSON.parse(localStorage.getItem('choosewise_users') || '[]');
+        const user = users.find(u => u.email === email && u.password === password);
+        
+        if (user) {
+            localStorage.setItem('user', JSON.stringify(user));
+            alert(`Welcome back, ${user.name}!`);
+            closeModal();
+            updateUIForLoggedInUser(user);
+        } else {
+            alert('Invalid email or password');
         }
     });
     
@@ -516,33 +503,39 @@ function initLoginModal() {
         
         // Handle signup form
         const signupForm = document.getElementById('signupForm');
-        signupForm.addEventListener('submit', async (e) => {
+        signupForm.addEventListener('submit', (e) => {
             e.preventDefault();
             const formData = new FormData(e.target);
             const name = formData.get('name');
             const email = formData.get('email');
             const password = formData.get('password');
             
-            try {
-                const response = await fetch('/api/auth/register', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, email, password })
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    localStorage.setItem('user', JSON.stringify(data.user));
-                    alert(`Welcome to ChooseWise, ${data.user.name}! Check your email for welcome message.`);
-                    signupModal.style.display = 'none';
-                    updateUIForLoggedInUser(data.user);
-                } else {
-                    alert(data.error || 'Registration failed');
-                }
-            } catch (error) {
-                alert('Cannot connect to server. Make sure the backend is running.');
+            // Get existing users
+            const users = JSON.parse(localStorage.getItem('choosewise_users') || '[]');
+            
+            // Check if user already exists
+            if (users.find(u => u.email === email)) {
+                alert('User with this email already exists');
+                return;
             }
+            
+            // Create new user
+            const newUser = {
+                id: Date.now().toString(),
+                name,
+                email,
+                password,
+                createdAt: new Date().toISOString()
+            };
+            
+            // Save user
+            users.push(newUser);
+            localStorage.setItem('choosewise_users', JSON.stringify(users));
+            localStorage.setItem('user', JSON.stringify(newUser));
+            
+            alert(`Welcome to ChooseWise, ${newUser.name}!`);
+            signupModal.style.display = 'none';
+            updateUIForLoggedInUser(newUser);
         });
         
         // Back to login
@@ -748,13 +741,17 @@ function showLoginForm() {
 function updateUIForLoggedInUser(user) {
     const loginBtn = document.getElementById('loginBtn');
     if (loginBtn) {
-        loginBtn.textContent = user.name;
+        loginBtn.textContent = `Hi, ${user.name.split(' ')[0]}`;
+        loginBtn.style.background = 'var(--primary-color)';
+        loginBtn.style.color = 'var(--background-color)';
         loginBtn.onclick = () => {
             if (confirm('Do you want to logout?')) {
                 localStorage.removeItem('user');
                 loginBtn.textContent = 'Login';
+                loginBtn.style.background = 'transparent';
+                loginBtn.style.color = 'var(--primary-color)';
                 loginBtn.onclick = null;
-                initLoginModal();
+                location.reload();
             }
         };
     }
